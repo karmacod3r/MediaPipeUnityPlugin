@@ -1,6 +1,3 @@
-# This is a fork of MediaPupe Unity Plugin that enables building for Android x86_64 architectures
-
-
 # MediaPipe Unity Plugin
 
 This is a Unity (2021.3.3f1) [Native Plugin](https://docs.unity3d.com/Manual/NativePlugins.html) to use [MediaPipe](https://github.com/google/mediapipe) (0.8.10).
