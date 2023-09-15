@@ -1,6 +1,6 @@
 # MediaPipe Unity Plugin
 
-This is a Unity (2021.3.3f1) [Native Plugin](https://docs.unity3d.com/Manual/NativePlugins.html) to use [MediaPipe](https://github.com/google/mediapipe) (0.8.10).
+This is a Unity (2022.3.6f1) [Native Plugin](https://docs.unity3d.com/Manual/NativePlugins.html) to use [MediaPipe](https://github.com/google/mediapipe) (0.10.1).
 
 The goal of this project is to port the MediaPipe API (C++) _one by one_ to C# so that it can be called from Unity.\
 This approach may sacrifice performance when you need to call multiple APIs in a loop, but it gives you the flexibility to use MediaPipe instead.
@@ -113,23 +113,29 @@ Here is a list of [solutions](https://google.github.io/mediapipe/solutions/solut
 |   Selfie Segmentation   | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |       |
 |    Hair Segmentation    | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |       |
 |    Object Detection     | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |       |
-|      Box Tracking       | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |       |
-| Instant Motion Tracking | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |       |
-|        Objectron        | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |       |
-|          KNIFT          |                    |                    |                    |                    |                    |                    |       |
-
 ### UnityEditor
 
-Select `Mediapipe/Samples/Scenes/Start Scene` and play.
+Select any scenes under `Mediapipe/Samples/Scenes` and play.
 
-### Desktop
+### Desktop, Android, iOS
 
-If you've built native libraries for CPU (i.e. `--desktop cpu`), select `CPU` for inference mode from the Inspector Window.
-![preferable-inference-mode](https://user-images.githubusercontent.com/4690128/134795568-156f3d41-b46e-477f-a487-d04c99300c33.png)
+Select proper Inference Mode and Asset Loader Type from the Inspector Window.
 
-### Android, iOS
+#### Preferable Inference Mode
 
-Make sure that you select `GPU` for inference mode before building the app, because `CPU` inference mode is not supported currently.
+If you've built native libraries for CPU (i.e. `--desktop cpu`), select `CPU` for inference mode.\
+When building for Android/iOS, make sure that you select `GPU` for inference mode, because `CPU` inference mode is not supported currently.
+
+![preferable-inference-mode](https://github.com/homuler/MediaPipeUnityPlugin/assets/4690128/129d18be-8184-43f7-8ac8-56db4df9f9a7)
+
+#### Asset Loader Type
+
+The default Asset Loader Type is set to `Local`, which only works on UnityEditor.\
+To run it on your devices, switch it to `StreamingAssets` and copy the required resources under [`StreamingAssets`](https://docs.unity3d.com/2022.3/Documentation/Manual/StreamingAssets.html) (if you're using `MediaPipeUnityPlugin-all.zip`, the `StreamingAssets` directory already contains them).
+
+![asset-loader-type](https://github.com/homuler/MediaPipeUnityPlugin/assets/4690128/f7059140-4da9-4201-a232-83ff07cd63df)
+
+See [the tutorial](https://github.com/homuler/MediaPipeUnityPlugin/wiki/Getting-Started#load-model-files) for more details.
 
 ## :book: Wiki
 

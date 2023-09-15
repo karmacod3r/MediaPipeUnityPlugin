@@ -9,9 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-using Google.Protobuf;
-
-namespace Mediapipe.Unity.FaceDetection
+namespace Mediapipe.Unity.Sample.FaceDetection
 {
   public class FaceDetectionGraph : GraphRunner
   {
@@ -43,7 +41,7 @@ namespace Mediapipe.Unity.FaceDetection
     {
       if (runningMode.IsSynchronous())
       {
-        _faceDetectionsStream.StartPolling().AssertOk();
+        _faceDetectionsStream.StartPolling();
       }
       StartRun(BuildSidePacket(imageSource));
     }
@@ -73,7 +71,7 @@ namespace Mediapipe.Unity.FaceDetection
       };
     }
 
-    protected override Status ConfigureCalculatorGraph(CalculatorGraphConfig config)
+    protected override void ConfigureCalculatorGraph(CalculatorGraphConfig config)
     {
       if (runningMode == RunningMode.NonBlockingSync)
       {
@@ -91,27 +89,24 @@ namespace Mediapipe.Unity.FaceDetection
         var calculatorOptions = new CalculatorOptions();
         calculatorOptions.SetExtension(FaceDetectionOptions.Extensions.Ext, new FaceDetectionOptions { MinScoreThresh = minDetectionConfidence });
         calculator.Options = calculatorOptions;
-        Logger.LogInfo(TAG, $"Min Detection Confidence ({calculator.Calculator}) = {minDetectionConfidence}");
+        Debug.Log($"Min Detection Confidence ({calculator.Calculator}) = {minDetectionConfidence}");
       }
 
       using (var validatedGraphConfig = new ValidatedGraphConfig())
       {
-        var status = validatedGraphConfig.Initialize(config);
-
-        if (!status.Ok()) { return status; }
-
-        return calculatorGraph.Initialize(config);
+        validatedGraphConfig.Initialize(config);
+        calculatorGraph.Initialize(config);
       }
     }
 
-    private SidePacket BuildSidePacket(ImageSource imageSource)
+    private PacketMap BuildSidePacket(ImageSource imageSource)
     {
-      var sidePacket = new SidePacket();
+      var sidePacket = new PacketMap();
 
       SetImageTransformationOptions(sidePacket, imageSource);
       sidePacket.Emplace("model_type", new IntPacket((int)modelType));
 
-      Logger.LogInfo(TAG, $"Model Selection = {modelType}");
+      Debug.Log($"Model Selection = {modelType}");
 
       return sidePacket;
     }

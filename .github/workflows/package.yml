@@ -57,7 +57,7 @@ jobs:
 
       - name: Build a Docker image
         run: |
-          docker build --no-cache --build-arg UID=$(id -u) -t mediapipe_unity:latest . -f docker/linux/x86_64/Dockerfile.ubuntu
+          docker build --no-cache --build-arg UID=$(id -u) -t mediapipe_unity:latest . -f docker/linux/x86_64/Dockerfile
 
       - name: Build
         run: |
@@ -65,7 +65,7 @@ jobs:
             --mount type=bind,src=$PWD/Packages,dst=/home/mediapipe/Packages \
             --mount type=bind,src=$PWD/Assets,dst=/home/mediapipe/Assets \
             mediapipe_unity:latest \
-            python build.py build --bazel_build_opts "${{ inputs.bazelBuildArgs }}" ${{ inputs.linuxBuildArgs }} -vv
+            python build.py build --bazel_build_opts="${{ inputs.bazelBuildArgs }}" ${{ inputs.linuxBuildArgs }} -vv
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -82,7 +82,11 @@ jobs:
 
       - name: Build a Docker image
         run: |
-          docker build --no-cache --build-arg UID=$(id -u) -t mediapipe_unity:latest . -f docker/linux/x86_64/Dockerfile.ubuntu
+          docker build --no-cache --build-arg UID=$(id -u) -t mediapipe_unity:latest . -f docker/linux/x86_64/Dockerfile
+
+      - name: Remove unused files to free up space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android
 
       - name: Build
         run: |
@@ -90,7 +94,7 @@ jobs:
             --mount type=bind,src=$PWD/Packages,dst=/home/mediapipe/Packages \
             --mount type=bind,src=$PWD/Assets,dst=/home/mediapipe/Assets \
             mediapipe_unity:latest \
-            python build.py build --bazel_build_opts "${{ inputs.bazelBuildArgs }}" ${{ inputs.androidBuildArgs }} -vv
+            python build.py build --bazel_build_opts="${{ inputs.bazelBuildArgs }}" ${{ inputs.androidBuildArgs }} -vv
 
       - name: Upload mediapipe_android.aar
         uses: actions/upload-artifact@v3
@@ -115,7 +119,7 @@ jobs:
       - name: Build libmediapipe_c.dylib
         run: |
           unset ANDROID_NDK_HOME
-          python build.py build --bazel_build_opts "${{ inputs.bazelBuildArgs }}" ${{ inputs.macosBuildArgs }} -vv
+          python build.py build --bazel_build_opts="${{ inputs.bazelBuildArgs }}" ${{ inputs.macosBuildArgs }} -vv
 
       - name: Upload libmediapipe_c.dylib
         uses: actions/upload-artifact@v3
@@ -137,11 +141,22 @@ jobs:
       - name: Install NumPy
         run: pip install --no-cache-dir --user numpy
 
-      - name: Build libmediapipe_c.dylib
+      - name: Build bazel to circumvent a compile error
+        run: |
+          mkdir bin
+          git clone https://github.com/bazelbuild/bazel.git --depth 1 --single-branch --branch  6.1.1
+          cd bazel
+          git apply ../third_party/bazel_ios_workaround.diff
+          USE_BAZEL_VERSION=6.2.1 bazel build --java_runtime_version=remotejdk_11 //src:bazel
+          cp bazel-bin/src/bazel ../bin
+          cd ..
+          echo "bin" >> $GITHUB_PATH
+
+      - name: Build MediaPipeUnity.framework
         run: |
           unset ANDROID_NDK_HOME
           sed -i -e 's/PLEASE_SET_YOUR_BUNDLE_ID_HERE/com.github.homuler.mediapipe.unity/g' mediapipe_api/objc/BUILD
-          python build.py build --bazel_build_opts "${{ inputs.bazelBuildArgs }}" ${{ inputs.iosBuildArgs }} -vv
+          python build.py build --bazel_build_opts="${{ inputs.bazelBuildArgs }}" ${{ inputs.iosBuildArgs }} -vv
 
       - name: Upload MediaPipeUnity.framework
         uses: actions/upload-artifact@v3
@@ -168,7 +183,7 @@ jobs:
             --mount type=bind,src=%CD%\Packages,dst=C:\mediapipe\Packages ^
             --mount type=bind,src=%CD%\Assets,dst=C:\mediapipe\Assets ^
             mediapipe_unity:latest ^
-            python build.py build --bazel_build_opts "${{ inputs.bazelBuildArgs }}" ${{ inputs.windowsBuildArgs }} -vv
+            python build.py build --bazel_build_opts="${{ inputs.bazelBuildArgs }}" ${{ inputs.windowsBuildArgs }} -vv
         shell: cmd
 
       - name: Upload mediapipe_c.dll
@@ -197,7 +212,7 @@ jobs:
       - name: Install UnityEditor
         if: ${{ env.BUILD_UNITYPACKAGE == '1' }}
         run: |
-          sudo docker cp $(docker create --rm unityci/editor:2021.3.3f1-base-1):/opt/unity /opt/unity
+          sudo docker cp $(docker create --rm unityci/editor:2022.3.6f1-base-1):/opt/unity /opt/unity
           sudo chown -R $(id -u):$(id -g) /opt/unity
 
           echo -e '#!/bin/bash\nxvfb-run -ae /dev/stdout /opt/unity/Editor/Unity -batchmode "$@"' | sudo tee -a /usr/bin/unity-editor
@@ -219,7 +234,7 @@ jobs:
           npm install
           cd ..
           npm install -g ./unity-license-activate
-          unity-license-activate "$UNITY_EMAIL" "$UNITY_PASSWORD" Unity_v2021.3.3f1.alf --authenticator-key "$UNITY_TOTP_KEY"
+          unity-license-activate "$UNITY_EMAIL" "$UNITY_PASSWORD" Unity_v2022.3.6f1.alf --authenticator-key "$UNITY_TOTP_KEY"
           rm -rf unity-license-activate
       - name: Activate License
         if: ${{ env.BUILD_UNITYPACKAGE == '1' }}
@@ -253,13 +268,6 @@ jobs:
           name: ${{ inputs.packageName }}-mediapipe_c.dll
           path: Packages/com.github.homuler.mediapipe/Runtime/Plugins
 
-      - name: Remove unused meta files
-        run: |
-          cd Packages/com.github.homuler.mediapipe/Runtime/Plugins
-          rm libmediapipe_c.bc.meta
-          rm libopencv_world.*.meta
-          rm opencv_world*.dll.meta
-
       - name: Zip all
         run: |
           zip -r MediaPipeUnityPlugin-all.zip . -x .git/**\*
@@ -287,7 +295,6 @@ jobs:
 
   clean:
     runs-on: ubuntu-latest
-    if: ${{ always() }}
     needs:
       - package
     steps:

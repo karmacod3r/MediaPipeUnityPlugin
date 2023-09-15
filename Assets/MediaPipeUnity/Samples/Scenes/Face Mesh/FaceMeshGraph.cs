@@ -11,7 +11,7 @@ using UnityEngine;
 
 using Google.Protobuf;
 
-namespace Mediapipe.Unity.FaceMesh
+namespace Mediapipe.Unity.Sample.FaceMesh
 {
   public class FaceMeshGraph : GraphRunner
   {
@@ -72,10 +72,10 @@ namespace Mediapipe.Unity.FaceMesh
     {
       if (runningMode.IsSynchronous())
       {
-        _faceDetectionsStream.StartPolling().AssertOk();
-        _multiFaceLandmarksStream.StartPolling().AssertOk();
-        _faceRectsFromLandmarksStream.StartPolling().AssertOk();
-        _faceRectsFromDetectionsStream.StartPolling().AssertOk();
+        _faceDetectionsStream.StartPolling();
+        _multiFaceLandmarksStream.StartPolling();
+        _faceRectsFromLandmarksStream.StartPolling();
+        _faceRectsFromDetectionsStream.StartPolling();
       }
       StartRun(BuildSidePacket(imageSource));
     }
@@ -110,7 +110,7 @@ namespace Mediapipe.Unity.FaceMesh
       return r1 || r2 || r3 || r4;
     }
 
-    protected override Status ConfigureCalculatorGraph(CalculatorGraphConfig config)
+    protected override void ConfigureCalculatorGraph(CalculatorGraphConfig config)
     {
       if (runningMode == RunningMode.NonBlockingSync)
       {
@@ -133,9 +133,7 @@ namespace Mediapipe.Unity.FaceMesh
 
       using (var validatedGraphConfig = new ValidatedGraphConfig())
       {
-        var status = validatedGraphConfig.Initialize(config);
-
-        if (!status.Ok()) { return status; }
+        validatedGraphConfig.Initialize(config);
 
         var extensionRegistry = new ExtensionRegistry() { TensorsToDetectionsCalculatorOptions.Extensions.Ext, ThresholdingCalculatorOptions.Extensions.Ext };
         var cannonicalizedConfig = validatedGraphConfig.Config(extensionRegistry);
@@ -153,7 +151,7 @@ namespace Mediapipe.Unity.FaceMesh
               var calculatorOptions = new CalculatorOptions();
               calculatorOptions.SetExtension(TensorsToDetectionsCalculatorOptions.Extensions.Ext, opt);
               calculator.Options = calculatorOptions;
-              Logger.LogInfo(TAG, $"Min Detection Confidence = {minDetectionConfidence}");
+              Debug.Log($"Min Detection Confidence = {minDetectionConfidence}");
               break;
             }
           }
@@ -165,10 +163,10 @@ namespace Mediapipe.Unity.FaceMesh
           {
             var options = calculator.Options.GetExtension(ThresholdingCalculatorOptions.Extensions.Ext);
             options.Threshold = minTrackingConfidence;
-            Logger.LogInfo(TAG, $"Min Tracking Confidence = {minTrackingConfidence}");
+            Debug.Log($"Min Tracking Confidence = {minTrackingConfidence}");
           }
         }
-        return calculatorGraph.Initialize(cannonicalizedConfig);
+        calculatorGraph.Initialize(cannonicalizedConfig);
       }
     }
 
@@ -180,16 +178,16 @@ namespace Mediapipe.Unity.FaceMesh
       };
     }
 
-    private SidePacket BuildSidePacket(ImageSource imageSource)
+    private PacketMap BuildSidePacket(ImageSource imageSource)
     {
-      var sidePacket = new SidePacket();
+      var sidePacket = new PacketMap();
 
       SetImageTransformationOptions(sidePacket, imageSource);
       sidePacket.Emplace("num_faces", new IntPacket(maxNumFaces));
       sidePacket.Emplace("with_attention", new BoolPacket(refineLandmarks));
 
-      Logger.LogInfo(TAG, $"Max Num Faces = {maxNumFaces}");
-      Logger.LogInfo(TAG, $"Refine Landmarks = {refineLandmarks}");
+      Debug.Log($"Max Num Faces = {maxNumFaces}");
+      Debug.Log($"Refine Landmarks = {refineLandmarks}");
 
       return sidePacket;
     }

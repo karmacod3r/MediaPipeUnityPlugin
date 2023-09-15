@@ -31,7 +31,7 @@ class UnsafePacketHolder : public mediapipe::packet_internal::Holder<T> {
 
 extern "C" {
 
-typedef std::map<std::string, mediapipe::Packet> SidePacket;
+typedef std::map<std::string, mediapipe::Packet> PacketMap;
 
 /** mediapipe::Packet API */
 MP_CAPI(MpReturnCode) mp_Packet__(mediapipe::Packet** packet_out);
@@ -81,29 +81,29 @@ MP_CAPI(MpReturnCode) mp__MakeStringPacket__PKc_i(const char* str, int size, med
 MP_CAPI(MpReturnCode) mp__MakeStringPacket_At__PKc_i_Rt(const char* str, int size, mediapipe::Timestamp* timestamp, mediapipe::Packet** packet_out);
 MP_CAPI(MpReturnCode) mp_Packet__GetString(mediapipe::Packet* packet, const char** value_out);
 MP_CAPI(MpReturnCode) mp_Packet__GetByteString(mediapipe::Packet* packet, const char** value_out, int* size_out);
-MP_CAPI(MpReturnCode) mp_Packet__ConsumeString(mediapipe::Packet* packet, absl::StatusOr<std::string>** status_or_value_out);
+MP_CAPI(MpReturnCode) mp_Packet__ConsumeString(mediapipe::Packet* packet, absl::Status** status_out, const char** value_out);
+MP_CAPI(MpReturnCode) mp_Packet__ConsumeByteString(mediapipe::Packet* packet, absl::Status** status_out, const char** value_out, int* size_out);
 MP_CAPI(MpReturnCode) mp_Packet__ValidateAsString(mediapipe::Packet* packet, absl::Status** status_out);
 
-/** SidePacket API */
-MP_CAPI(MpReturnCode) mp_SidePacket__(SidePacket** side_packet_out);
-MP_CAPI(void) mp_SidePacket__delete(SidePacket* side_packet);
-MP_CAPI(MpReturnCode) mp_SidePacket__emplace__PKc_Rp(SidePacket* side_packet, const char* key, mediapipe::Packet* packet);
-MP_CAPI(MpReturnCode) mp_SidePacket__at__PKc(SidePacket* side_packet, const char* key, mediapipe::Packet** packet_out);
-MP_CAPI(MpReturnCode) mp_SidePacket__erase__PKc(SidePacket* side_packet, const char* key, int* count_out);
-MP_CAPI(void) mp_SidePacket__clear(SidePacket* side_packet);
-MP_CAPI(int) mp_SidePacket__size(SidePacket* side_packet);
+/** PacketMap API */
+MP_CAPI(MpReturnCode) mp_PacketMap__(PacketMap** packet_map_out);
+MP_CAPI(void) mp_PacketMap__delete(PacketMap* packet_map);
+MP_CAPI(MpReturnCode) mp_PacketMap__emplace__PKc_Rp(PacketMap* packet_map, const char* key, mediapipe::Packet* packet);
+MP_CAPI(MpReturnCode) mp_PacketMap__find__PKc(PacketMap* packet_map, const char* key, mediapipe::Packet** packet_out);
+MP_CAPI(MpReturnCode) mp_PacketMap__erase__PKc(PacketMap* packet_map, const char* key, int* count_out);
+MP_CAPI(void) mp_PacketMap__clear(PacketMap* packet_map);
+MP_CAPI(int) mp_PacketMap__size(PacketMap* packet_map);
 
 }  // extern "C"
 
 template <typename T>
-inline MpReturnCode mp_Packet__Consume(mediapipe::Packet* packet, absl::StatusOr<T>** status_or_value_out) {
+inline MpReturnCode mp_Packet__Consume(mediapipe::Packet* packet, absl::Status** status_out, T** value_out) {
   TRY_ALL
     auto status_or_unique_ptr = packet->Consume<T>();
 
+    *status_out = new absl::Status{status_or_unique_ptr.status()};
     if (status_or_unique_ptr.ok()) {
-      *status_or_value_out = new absl::StatusOr<T>{std::move(*status_or_unique_ptr.value().release())};
-    } else {
-      *status_or_value_out = new absl::StatusOr<T>{status_or_unique_ptr.status()};
+      *value_out = new T{std::move(*status_or_unique_ptr.value().release())};
     }
     RETURN_CODE(MpReturnCode::Success);
   CATCH_ALL
